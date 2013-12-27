@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="UTF-8" />
+	<title>Snake</title>
+	<link href="estilo.css" type="text/css" rel="stylesheet" />
+ 	<link href='http://fonts.googleapis.com/css?family=Original+Surfer' rel='stylesheet' type='text/css'>
+ 	
+<script type="text/javascript">
+	
+	//DECLARAÇÃO DE VARIAVEIS PARA A UTILIZAÇÃO NO PROGRAMA
+	var iniciou = false;
+	var nivelOk
+	var pontuacao = 0;
+	var xBloco = 0;
+	var yBloco = 0;
+	var xCobra = 0;
+	var yCobra = 0;	
+	var posCobra = parseInt(xCobra) + parseInt(yCobra); 
+	var posBloco = parseInt(xBloco) + parseInt(yBloco);
+	var blocos = new Array();
+	var x = 15; //posição incial
+	var y = 200; //posição incial
+	var canvas;
+	var ctx;
+	var posicaoComidaX;
+	var posicaoComidaY;
+	var velocidadeSorteio = 0;
+	
+	var inicio = 0;
+	var largura = 10;
+	var altura = 10;
+	
+	
+	var direcao = 39;
+	var subir = false;
+	var descer = false;
+	var direita = false;
+	var esquerda = false;
+	
+	var direcaoAnterior;
+	
+	var corpo = new Array();
+	corpo.push([0, 0],[12, 0],[24, 0]);
+	var contador = 0;
+	var jogoIniciado = true;
+	
+	//------- FUNÇÃO QUE CAPTURA A TECLA PRESSIONADA NO CORPO DA PÁGINA (BODY)
+	function getBotao(event){
+		tecla = event.keyCode;		
+		
+			//------- AS CONDIÇÕES ABAIXO FAZEM COM QUE A DIREÇÃO SÓ SEJA ALTERADA SE SUA DIREÇÃO OPOSTA NÃO ESTIVER ATIVA.
+			//------- EXEMPLO: A DIREÇÃO ATUAL É ESQUERDA, O CODIGO NÃO PERMITE QUE A DIREÇÃO SEJA ALTERADA PARA DIREITA SEM ANTES MUDAR PARA CIMA OU PARA BAIXO 
+			
+			if(tecla == 40 && subir == false){//DESCER
+				descer = true;
+				subir = false;
+				direita = false;
+				esquerda = false;
+				direcao = tecla;
+			}
+			else if(tecla == 38 && descer == false){//SUBIR
+				descer = false;
+				subir = true;
+				direita = false;
+				esquerda = false;
+				direcao = tecla;
+			}		
+			else if(tecla == 39 && esquerda == false){//DIREITA
+				descer = false;
+				subir = false;
+				direita = true;
+				esquerda = false;
+				direcao = tecla;
+			}
+			else if(tecla == 37 && direita == false){//ESQUERDA
+				descer = false;
+				subir = false;
+				direita = false;
+				esquerda = true;
+				direcao = tecla;
+			}	
+	 }//FIM FUNCAO BOTAO
+	
+	var corpoAtual;
+	var corpoAnterior = corpo.length-1;
+	
+	//------ FUNÇÃO QUE CUIDA DE DESENHAR A SNAKE
+	function desenhaSnake(){
+		
+		//----- ESSE LAÇO VERIFICA TODAS AS POSIÇÕES DO CORPO DA SNAKE, E SE A PRIMEIRA POSIÇÃO (PONTA) 
+		//----- FOR IGUAL A ALGUMA POSIÇÃO DE ALGUMA PARTE DO CORPO, ENTÃO O JOGO É FINALIZADO
+		
+		for(var s = 1; s < corpo.length; s++){
+			if(corpo[0][0] == corpo[s][0] && corpo[0][1] == corpo[s][1]){
+				jogoIniciado = false;				
+			}
+		
+		}//FIM FOR
+	
+	//--- SE A VARIAVEL JOGO INICIADO AINDA ESTIVER COM A CONDIÇÃO TRUE O JOGADOR AINDA NAO PERDER E O CÓDIGO QUE DESENHA A SNAKE PODE SER CHAMADO
+		
+	if(jogoIniciado){
+		ctx.beginPath();
+		console.log(ctx.beginPath());
+	   	ctx.fillStyle = "#9EB540";
+		console.log(x,y);
+	for(var i = 0; i < corpo.length; i++) {
+			ctx.fillRect(corpo[i][0], corpo[i][1], altura, largura);
+			ctx.fill();
+			ctx.stroke();
+		}
+		corpoAtual = corpo.length;
+	}//FIM JOGO INICIADO
+	
+	//---- SE A VARIAVEL JOGO INICIAR ESTIVER COM O VALOR FALSE, O JOGADOR PERDEU O JOGO E O GAME OVER É CHAMADO
+	else{
+		gameOver();
+	}	
+}//FIM FUNÇÃO DESENHA SNAKE
+	
+	//----- A FUNÇÃO DESENHAR TRATA DA MAIORIA DAS REGRAS. É A FUNÇÃO CHAMADA NO INICIO DO JOGO QUE ESTÁ MAIS ABAIXO	
+	function Desenhar() {
+		
+		if(jogoIniciado){
+		
+			canvas = document.getElementById('canvas');	
+	 		ctx = canvas.getContext("2d");
+			ctx.clearRect(0,0,500,500);/*Tamnho da tela*/
+
+			
+		//JA CHAMA O BLOCO DE COMIDA AO INICIAR O JOGO
+		if (blocos.length <= 0) {
+			sortearAleatorio();
+		}
+		
+		contador++;
+				
+		if(contador == velocidadeSorteio) {
+			//console.log("Soteou bloco - -" + contador);
+			blocos.splice(0,1);
+			sortearAleatorio();
+			contador = 0;
+		}	
+		
+		/*if(contador == 100) {
+	 	console.log("Soteou bloco - -" + contador);
+	 	contador = 0;	 	
+	 	sortearAleatorio();
+			for(var b = 0; b < blocos.length; b++) {		
+				blocos.splice(b,1);
+			}	 
+	 	}//FIM CONTADOR*/
+		
+		
+		//------ SE A COBRA COMER ALGUM BLOCO INCREMENTA UM BLOCO EM SEU CORPO
+		
+		for(var i = 0; i < blocos.length; i++) {
+			for(var z = 0; z < corpo.length; z++) {
+				if(corpo[z][0] == blocos[i][0] && corpo[z][1] == blocos[i][1]) {
+					
+					//---- TODA VEZ QUE A COBRA COME UM BLOCO SÃO ACRESCIDOS PONTOS DE ACORDO COM O NIVEL 
+					//---- ESCOLHIDO COM O USUARIO, ALEM DE "TOCAR" O SOM NO MOMENTO DA ALIMENTAÇÃO
+					var pts = 0;
+					pts = document.getElementById("pontos");
+					pontuacao = ponto + pontuacao;
+					pts.value=(pontuacao);
+					document.getElementById('audio').play()					 
+					corpo.push([blocos[i][0],blocos[i][1]]);
+					blocos.splice(i, 1);
+					sortearAleatorio();
+					contador=0;
+				}//FIM IF
+			}
+		}//FIM INCREMENTO COMIDA
+				
+		
+	desenharBlocos();
+		
+		
+	if(direcao == 40){ //descer
+		for(var i = corpo.length-1; i > 0; i--) {
+				corpo[i][0] = corpo[i-1][0];			
+				corpo[i][1] = corpo[i-1][1];
+							
+		}
+			corpo[0][1] = (corpo[0][1] + 10) % 500;					
+		}//FIM AÇÃO DESCER
+	
+	if(direcao == 38){ //subir
+		inicio = 1;
+		altura = largura;		
+		for(var i = corpo.length -1; i > 0; i--) {
+			corpo[i][0] = corpo[i-1][0];			
+			corpo[i][1] = corpo[i-1][1];					
+		}//FIM FOR
+		
+		corpo[0][1] = (corpo[0][1] - 10);
+		
+		if(corpo[0][1] < 0) { // SE A POSIÇÃO DA SNKE FOR MENOR QUE 1 INICIA NO 500 DANDO A IMPRESSÃO QUE PASSOU PARA O OUTRO LADO
+			corpo[0][1] = 500;
+		
+		}
+	}//FIM AÇÃO SUBIR
+	
+	if(direcao == 39){ //direita	
+		inicio = 1;
+		for(var i = corpo.length -1; i >0; i--) {
+			corpo[i][0] = corpo[i-1][0];			
+			corpo[i][1] = corpo[i-1][1];			
+		}
+		
+		corpo[0][0] = (corpo[0][0] + 10)%500;
+		
+	}//FIM AÇÃO DIREITA
+	
+	if(direcao == 37){ //esquerda
+		
+		inicio = 1;
+		for(var i = corpo.length -1; i >0; i--) {
+			corpo[i][0] = corpo[i-1][0];			
+			corpo[i][1] = corpo[i-1][1];					
+		}
+		
+		corpo[0][0] = (corpo[0][0] - 10)%500;
+		if(corpo[0][0] < 0) {
+			corpo[0][0] = 500;
+		}
+	}//FIM AÇÃO ESQUERDA		
+		
+	desenhaSnake();
+		 
+		 }//FIM IF JOGO INICIADO
+	}//FIM DESENHAR
+	
+	//------ FUNÇÃO QUE SORTEIA ALEATORIAMENTE OS BLOCOS DE COMIDA NA TELA
+	function sortearAleatorio(){
+		do{
+			xBloco= Math.round(Math.random()*500-10);
+		}while(xBloco %10 != 0);
+		do{
+			yBloco= Math.round(Math.random()*500-10);
+		}while(yBloco %10 != 0);
+		
+		if(yBloco<0){		
+			yBloco=0;		
+		}
+		if(xBloco<0){		
+			xBloco=0;		
+		}
+		blocos.push([xBloco, yBloco]);
+	}//FIM SORTEAR
+	
+	//------- CRIAÇÃO DA COMIDA
+
+	function desenharBlocos() {
+			ctx.fillStyle = "#000000";
+			console.log(" Aleatorios " + blocos.length);
+			for(var i = 0; i < blocos.length; i++) {
+				ctx.fillRect(blocos[i][0], blocos[i][1], altura, largura);
+			}
+	}//------ FIM GERAÇÃO COMIDA
+	
+	
+	var nivel;
+	var nivelOk;
+	var velocidadeSnake;
+	var ponto;
+	var inicio;  
+	
+	// --- FUNÇÃO QUE DEFINE O NIVEL ESCOLHIDO PELO USUARIO
+	function defineNivel(){
+		nivel = document.getElementById("niveis").selectedIndex;
+		//alert("nivel:" + nivel);
+			
+		if(nivel == 0){
+				alert("Por favor, Escolha um nível de jogo para iniciar!");
+				return false;
+			}
+		else{
+			var combo = document.getElementById("niveis");
+			combo.setAttribute('disabled', 'disabled');
+			var btIniciar = document.getElementById("btIniciar");
+			btIniciar.setAttribute('disabled', 'disabled');
+			
+			clearInterval(inicio);
+			velocidadeSnake = 0;
+			switch (nivel){
+				case 1:
+					velocidadeSnake = 160;
+					ponto = 1;
+					velocidadeSorteio = 100;
+				break;
+				case 2:
+					velocidadeSnake = 150;
+					ponto = 3;
+					velocidadeSorteio = 100;
+				break;
+				case 3:
+					velocidadeSnake = 140;
+					ponto = 5;
+					velocidadeSorteio = 100;
+				break;
+				case 4:
+					velocidadeSnake = 130;
+					ponto = 7;
+					velocidadeSorteio = 100;
+				break;
+				case 5:
+					velocidadeSnake = 120;
+					ponto = 9;
+					velocidadeSorteio = 75;
+				break;
+				case 6:
+					velocidadeSnake = 110;
+					ponto = 11;
+					velocidadeSorteio = 75;
+				break;
+				case 7:
+					velocidadeSnake = 100;
+					ponto = 13;
+					velocidadeSorteio = 75;
+				break;
+				case 8:
+					velocidadeSnake = 90;
+					ponto = 15;
+					velocidadeSorteio = 50;
+				break;
+				case 9:
+					velocidadeSnake = 80;
+					ponto = 17;
+					velocidadeSorteio = 50;
+				break;
+				case 10:
+					velocidadeSnake = 70;
+					ponto = 19;
+					velocidadeSorteio = 50;
+				break;
+			}			
+		return true;
+		}//FIM ELSE
+		
+	}
+	
+	function Iniciar(){
+		document.body.style.overflow='hidden';
+		this.location = "#box-canvas";
+		iniciou = true;
+ 		nivelOk = defineNivel();
+		if(nivelOk){
+			//alert("Velocidade da snake: " + velocidadeSnake + "\n" + "Velocidade Sorteio: " + velocidadeSorteio);
+			console.log("Velocidade da snake: " + velocidadeSnake + "\n" + "Velocidade Sorteio: " + velocidadeSorteio);
+			inicio = setInterval('Desenhar()',velocidadeSnake);
+		}
+	}//FIM FUNÇÃO INICIAR
+	
+	function Parar(){
+		if(iniciou){
+			var confirmacao = confirm("Tem certeza que deseja finalizar o jogo?");
+			if(confirmacao){
+				iniciou = false;
+				location.reload();
+			}			
+		}
+	}//FIM FUNÇÃO PARAR
+	
+	function gameOver(){
+		document.getElementById('gameOver').play();
+		document.body.style.overflow='scroll';
+		document.getElementById('Over').style.display = "block";
+	}//FIM GAME OVER
+	
+	</script>
+</head>
+<body onKeyup="getBotao(event)">
+<div class="centro">
+	<a id="topo"></a>
+	<header id="topo-pag">
+		<nav>
+			<ul>
+				<li><a href="#sobre-trabalho">Sobre o jogo</a></li>
+				<li><a href="#regras-jogo">Regras</a></li>
+				<li><a href="#credito-trabalho">Créditos</a></li>				
+			</ul>		
+		</nav>		
+	</header>	
+		
+	<canvas id="canvas" width="500" height="500">
+		Navegador sem suporte a canvas!
+	</canvas>
+	<a id="box-canvas"></a>
+<div id="conteudo-esquerda">	
+	<form name="form">
+	<ul>
+	<li>
+		Níveis:
+		<select name="niveis" id="niveis">
+			<option value="0">-- Escolha --</option>
+			<option value="1">1</option>
+			<option value="2">2</option>
+			<option value="3">3</option>
+			<option value="4">4</option>
+			<option value="5">5</option>
+			<option value="6">6</option>
+			<option value="7">7</option>
+			<option value="8">8</option>
+			<option value="9">9</option>
+			<option value="10">10</option>
+		</select>
+	</li>
+	<li>
+		<label for="pontos">Seus Pontos:</label>
+		<input name="pontos" id="pontos" type="text" disabled="disabled"/>
+	</li>
+	<div class="clear"></div>
+	<div id="Over" style="display: none;">
+		GAME OVER!
+		<div align="center">
+			<img src="game-over.png" alt="Game Over" />
+		</div>	
+	<!-- FIM GAME OVER -->
+	</div>
+	<li>
+		<input type="button" onclick="Iniciar()" value="Iniciar" id="btIniciar" />
+		<input type="button" onclick="Parar()" value="Parar" id="btParar" />
+	</li>
+	</ul>
+	</form>
+<!-- FIM DIV CONTEUDO ESQUERDO -->
+</div>
+<div class="clear"></div>
+
+<section id="sobre">
+<a id="sobre-trabalho"></a>	
+<h1>Sobre o jogo</h1>	
+	<p>
+		O presente trabalho foi totalmente desenvolvido utilizando as linguagens HTML5, JAVASCRIPT e CSS 3.
+		É totalmente compatível com o navegador Google Chrome.		
+	</p>
+<a href="#topo">Topo</a>
+</section>
+
+<section id="regras">
+<a id="regras-jogo"></a>
+<h1>Regras</h1>	
+	<p>
+		A) Ao iniciar o jogo você deve escolher uma dificuldade para o mesmo.<br />
+			Em cada nível diferente são aplicadas configurações de pontos e velocidade distintas.
+			<ul>
+				<li>
+					Nível 1: <span>1 ponto.</span>					
+				</li>
+				<li>
+					Nível 2: <span>3 pontos.</span>				
+				</li>
+				<li>
+					Nível 3: <span>5 pontos.</span>					
+				</li>
+				<li>
+					Nível 4: <span>7 pontos.</span>			
+				</li>
+				<li>
+					Nível 5: <span>9 pontos.</span>	
+				</li>
+				<li>
+					Nível 6:  <span> 11 pontos.</span>
+				</li>
+				<li>
+					Nível 7:  <span>13 pontos.</span>				
+				</li>
+				<li>
+					Nível 8:  <span>15 pontos.</span>				
+				</li>
+				<li>
+					Nível 9:  <span>17 pontos.</span>				
+				</li>
+				<li>
+					Nível 10:  <span>19 pontos.	</span>			
+				</li>				
+			</ul>
+	</p>
+	<p>
+		B) Após o jogo ser iniciado, não é permitido que o nível seja alterado, somente se o botão parar for pressionado gerando um novo jogo que começa com 0 (zero) pontos.
+	</p>
+<a href="#topo">Topo</a>
+</section>
+<section id="creditos">
+<a id="credito-trabalho"></a>
+<h1>Créditos</h1>
+	<img src="fcsl.jpg" alt="Faculdade Cenecista de Sete Lagoas" id="fcsl"/>
+	<p>
+		<span>Desenvolvido por:</span> Romeraldo Pereira <br /> Willian Henrique <br /> Vinícius Almeida.		
+	</p>
+	<p><span>Design:</span> Vinícius Almeida.</p>
+<a href="#topo">Topo</a>
+</section>
+
+<!-- FIM CENTRO -->
+</div>
+
+		<audio controls id="audio">
+  		<source src="comida.mp3" type="audio/mpeg">
+		Seu navegador não suporta a tag audio.
+		</audio>
+		<audio controls id="gameOver">
+  		<source src="gameOver.mp3" type="audio/mpeg">
+		Seu navegador não suporta a tag audio.
+		</audio>
+
+</body>
+</html>
